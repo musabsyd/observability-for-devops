@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# Update system
+dnf update -y
+
+# Install docker using dnf (OS default)
+dnf install -y docker git
+
+# Enable & start docker
+systemctl enable docker
+systemctl start docker
+
+# Add ec2-user to docker group
+usermod -aG docker ec2-user
+
+# Create docker plugin directory
+mkdir -p /usr/local/lib/docker/cli-plugins
+
+############################################
+# Install latest Docker Compose (standalone)
+############################################
+curl -SL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m)" \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose
+
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+
+############################################
+# Install latest Docker Buildx (standalone)
+############################################
+
+# Remove old buildx if exists
+rm -f /usr/local/lib/docker/cli-plugins/docker-buildx
+rm -f /usr/libexec/docker/cli-plugins/docker-buildx
+
+# Fetch latest buildx tag
+LATEST_BUILDX=$(curl -s https://api.github.com/repos/docker/buildx/releases/latest \
+  | grep tag_name | cut -d '"' -f 4)
+
+# Download latest buildx binary
+curl -SL "https://github.com/docker/buildx/releases/download/${LATEST_BUILDX}/buildx-${LATEST_BUILDX}.linux-amd64" \
+  -o /usr/local/lib/docker/cli-plugins/docker-buildx
+
+chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
+
+
+############################################
+# Verification output
+############################################
+docker --version
+docker compose version
+docker buildx version
+git --version
